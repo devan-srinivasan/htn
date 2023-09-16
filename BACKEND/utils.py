@@ -103,6 +103,7 @@ def generateNotes(note_text : str):
     instructed_model_input = denoiser_prompt.format_prompt(query = note_text)
     #Get output
     model_output = model(instructed_model_input.to_string())[0]
+    print("MODEL OUTPUT:", model_output)
     #Parse
     parsed_model_output = denoiser_validator.parse(model_output)
     #Return

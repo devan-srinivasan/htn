@@ -9,6 +9,7 @@ from PIL import Image
 from pytesseract import pytesseract
 # from utils import createGoogleDoc
 from utils import extractText, generateNotes
+import time
 
 #Init server
 NOTE_SERVER = Flask(__name__)
@@ -40,6 +41,7 @@ def response():
 @NOTE_SERVER.route("/save-note")
 def save_note():
     #Get screenshot of current text
+    time.sleep(5)
     img = pyautogui.screenshot()
     #Convert to numpy array and then to a PIL image that can be written to disk
     saved_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
@@ -51,6 +53,7 @@ def save_note():
     COMPLETE_NOTE_SCREENSHOT_NAMES.append(complete_screenshot_filename)
     #Extract text
     complete_text = extractText(image_file_path = complete_screenshot_filename)
+    print("COMPLETED TEXT:", complete_text)
     #Get gaze direction from AdHawk dataset and crop the image accordingly
     #9-quadrant-based system9
     #horizontal_direction, vertical_direction = getScreenGazeDirection()
@@ -66,12 +69,11 @@ def save_note():
     cropped_img = PIL_saved_img.crop((center_point[1] - (vertical_crop_percent * screen_size[1]), center_point[0] - (horizontal_crop_percent * screen_size[0]),
                                       center_point[1] + (vertical_crop_percent * screen_size[1]), center_point[0] + (horizontal_crop_percent * screen_size[0])))
     #Save to disk
-    img_name = "NOTE_" + str(len(PARTIAL_NOTE_SCREENSHOT_NAMES)) + ".png"
+    img_name = "PARTIAL_NOTE_" + str(len(PARTIAL_NOTE_SCREENSHOT_NAMES)) + ".png"
     cropped_img.save(img_name)
     #Get cropped region text
     cropped_region_text = extractText(img_name)
     #Get LLM-augmented notes - do this based on the full generation
-    print("COMPLETED TEXT:", complete_text)
     augmented_notes_text = generateNotes(note_text = complete_text)
     print("AUGMENTED NOTES TEXT:", augmented_notes_text)
     #Save image and text to Google Docs
