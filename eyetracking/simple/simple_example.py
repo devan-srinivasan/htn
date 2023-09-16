@@ -5,7 +5,7 @@ import time
 import adhawkapi
 import adhawkapi.frontend
 
-import numpy as np
+import requests
 # import pygame
 
 last_blink = None
@@ -14,6 +14,9 @@ last_reading, last_reading_count = [], 0
 # calibration
 import subprocess, re, sys
 from sys import platform
+
+pos = [0, 0]
+URL = "https://localhost:3001"
 
 # BLACK = (0, 0, 0)
 # WHITE = (200, 200, 200)
@@ -131,8 +134,8 @@ def blinked(timestamp):
     DBL_BLINK_TIME = 1.5
     # print(timestamp - last_blink)
     if last_blink is not None and timestamp - last_blink < DBL_BLINK_TIME:
-        # double blinked
-        pass
+        x = requests.post(URL, json = {pos: pos})
+        print(x['success_message'])
     last_blink = timestamp
 
 def gazed(gaze_data):
@@ -175,7 +178,6 @@ def gazed(gaze_data):
 def main():
     ''' App entrypoint '''
     frontend = FrontendData()
-    running = True
     # calibrated = False
     # last_five = []
     # while True:
@@ -223,7 +225,6 @@ def main():
     
     try:
         base = None
-        pos = [0, 0]
         c = 0
         while True:
             if not base and last_reading is not None and c < 5:
