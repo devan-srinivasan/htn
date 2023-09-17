@@ -7,6 +7,7 @@ import adhawkapi.frontend
 
 import requests, json
 import numpy as np
+from subprocess import Popen, PIPE
 # import pygame
 
 last_blink = None
@@ -137,6 +138,7 @@ class FrontendData:
         print("Tracker disconnected")
 
 def calculate_pupil_ratios(n = 40):
+    global pup_mean, pup_std
     outliers = []
     nonoutliers = []
     for i in range(min(len(pups), 40)):
@@ -200,67 +202,27 @@ def gazed(gaze_data):
 
 
 def main():
+    global pup_std, pup_mean
     ''' App entrypoint '''
     frontend = FrontendData()
-    # calibrated = False
-    # last_five = []
-    # while True:
-    # #     # poll for events
-    # #     # pygame.QUIT event means the user clicked X to close your window
-    # #     for event in pygame.event.get():
-    # #         if event.type == pygame.QUIT:
-    # #             running = False
-
-    # #     # fill the screen with a color to wipe away anything from last frame
-    # #     screen.fill('#000000')
-    # #     if not calibrated:
-    # #         circle = pygame.draw.circle(screen, (255, 0, 0),
-    # #             [WIDTH//2, HEIGHT//2], 10)
-        
-    # #     # show the text and dots in order
-    # #     text, textRect = calibration_texts()
-    # #     screen.blit(text, textRect)
-    # #     if not calibrated:
-    # #         mouse_pos = pygame.mouse.get_pos()
-    # #         mouse_pressed = pygame.mouse.get_pressed()[0]
-    # #         # print(mouse_pos, positions[i])
-    # #         if circle.collidepoint(mouse_pos) and mouse_pressed:
-    # #             print("clicked")
-    # #             base_pos = last_reading
-        
-    # #     if calibrated:
-            
-    # #         pygame.draw.rect(screen, (0,255,0), )
-
-    
-    # #     # flip() the display to put your work on screen
-    # #     pygame.display.flip()
-
-    # #     clock.tick(60)  # limits FPS to 60
-    #     last_five.append(last_reading)
-    #     if len(last_five) > 0:
-    #         last_five.pop(0)
-    #     print(last_reading)
-        
-    #     time.sleep(1)
-    # pygame.display.quit()
-    # # pygame.quit()
-    # print("calibration successful")
-    
     try:
         base = None
         c = 0
+        print("calibrating, focus on the middle of the screen...")
         while True:
-            if not base and last_reading is not None and c < 120:
+            if not base and last_reading is not None and c < 100:
                 base = last_reading
-                pups.append(lpup + rpup)
+                if lpup is not None and rpup is not None:
+                    pups.append(lpup + rpup)
                 c += 1
+                
             if c == 120:
+                print("calibration done")
                 pup_std, pup_mean = np.std(pups), np.mean(pups)
 
 
             # print(last_reading[1], base[1])
-            if base and c >= 120:
+            if base:
                 # print(last_reading, base)
                 if last_reading[1] > base[1] + 0.05:
                     pos[1] = 1
