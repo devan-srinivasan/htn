@@ -1,1 +1,4 @@
-BACKEND/Keys
+BACKEND/Keys.py
+venv/
+eyetracking/GazeTracking/
+.gitignore
