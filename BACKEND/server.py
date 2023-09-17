@@ -39,10 +39,13 @@ def response():
     return "Root dir accessed"
 
 #Get response
-@NOTE_SERVER.route("/save-note")
+@NOTE_SERVER.route("/save-note", methods=['POST'])
 def save_note():
+    print("TRIGGERED")
+    data = request.get_json()
+    print(data)
     #Get screenshot of current text
-    time.sleep(5)
+    # time.sleep(5)
     img = pyautogui.screenshot()
     #Convert to numpy array and then to a PIL image that can be written to disk
     saved_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)

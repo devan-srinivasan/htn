@@ -1,0 +1,54 @@
+.message, .firstMessage {
+    /* margin: 5x; */
+    padding: 0 0 0 10px;
+    text-align: left;
+    
+   /* border-radius: 10px; */
+    /* position: absolute;
+    left: -200px;
+    animation: slide 0.5s forwards;
+    animation-delay: 2s; */
+    /* animation-duration: 1s;
+    animation-name: slidein; */
+  
+}
+
+.messageWrapper {
+    display: flex;
+    flex-direction: row;
+    border-bottom: 1px solid #A9A9A9;
+    margin: 10px;
+    /* padding: 10px; */
+}
+
+.notif {
+    height:20px;
+    margin-top: 3px;
+}
+/* @keyframes slidein {
+    from {
+      transform: translateY(110vh);
+    }
+    to {
+      transform: translateY(0);
+    }
+} */
+
+.end {
+    background-color: red;
+    margin: 5px auto 5px;
+}
+
+.end:hover, .end:active, .end:focus-visible {
+    background-color: #d3d3d3 !important; 
+   
+}
+
+.buttonWrapper {
+    position: sticky;
+    bottom: 0;
+    z-index: 999;
+    background-color: white;
+    /* border-top: grey 1px; */
+    border-top:1px solid #d3d3d3;
+}

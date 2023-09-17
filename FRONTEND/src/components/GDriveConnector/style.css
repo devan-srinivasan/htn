@@ -1,0 +1,68 @@
+/* .Title {
+    position: absolute;
+    left: 50px;
+    color: white;
+    font-family: Verdana;
+} */
+/* 
+.Title:hover, .Title:active {
+    color: white !important; 
+} */
+
+/* .navbarContainer {
+    height: 40px;
+    background-color: #4682B4;
+} */
+
+/* .App-logo {
+    height: 25px;
+} */
+
+.drive-logo {
+    height: 25px;
+    margin: 0 10px;
+}
+
+
+/* .form-group {
+    width: 80%;
+    text-align: left;
+    margin: auto;
+    margin-bottom: 10px;
+
+} */
+
+
+.formWrapper {
+    font-family: Verdana;
+    text-align: center;
+}
+
+
+.btn-primary {
+    background-color: #0077B6;
+    color: white;
+    border: none;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 140px auto;
+    text-align: center;
+    border-radius: 17.5px;
+    font-size: 14px;
+}
+
+
+.btn-primary:hover, .btn-primary:active, .btn-primary:focus-visible {
+    background-color: #d3d3d3 !important; 
+    color: black !important; 
+   
+}
+
+/* body {
+    background-color: #E6E6FA;
+} */
+
+/* 
+.formTitle {
+    margin-top: 10px;
+    display: inline-block;
+} */
