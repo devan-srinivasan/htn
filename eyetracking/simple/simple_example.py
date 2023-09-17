@@ -6,10 +6,15 @@ import adhawkapi
 import adhawkapi.frontend
 
 import requests, json
+import numpy as np
+from subprocess import Popen, PIPE
 # import pygame
 
 last_blink = None
 last_reading, last_reading_count = [], 0
+lpup, rpup = None, None
+pups = []
+pup_std, pup_mean = None, None
 
 # calibration
 import subprocess, re, sys
@@ -91,7 +96,10 @@ class FrontendData:
         if et_data.pupil_diameter is not None:
             if et_data.eye_mask == adhawkapi.EyeMask.BINOCULAR:
                 rdiameter, ldiameter = et_data.pupil_diameter
+                lpup = ldiameter
+                rpup = rdiameter
                 # print(f'Pupil diameter: Left={ldiameter:.2f} Right={rdiameter:.2f}')
+
 
         if et_data.imu_quaternion is not None:
             if et_data.eye_mask == adhawkapi.EyeMask.BINOCULAR:
@@ -129,16 +137,31 @@ class FrontendData:
     def _handle_tracker_disconnect(self):
         print("Tracker disconnected")
 
+def calculate_pupil_ratios(n = 40):
+    global pup_mean, pup_std
+    outliers = []
+    nonoutliers = []
+    for i in range(min(len(pups), 40)):
+        z = (float(pups[i]) - float(pup_mean)) / float(pup_std)
+        if abs(z) >= 2:
+            outliers.append(pups[i])
+        else:
+            nonoutliers.append(pups[i])
+    return outliers, nonoutliers
+
 def blinked(timestamp):
     global last_blink
     DBL_BLINK_TIME = 1.5
     data_json = json.dumps(pos)
+    outliers, nonoutliers = calculate_pupil_ratios(50)
+    pupil_data_json = json.dumps({'outliers': outliers, 'nonoutliers': nonoutliers})
     # print(timestamp - last_blink)
 
-    print("blinked")
+    print(f"blinked @ {pos}")
     if last_blink is not None and timestamp - last_blink < DBL_BLINK_TIME:
         print("sending")
         x = requests.post(URL + '/save-note', json = data_json)
+        y = requests.post(URL + '/pupil-data', json = pupil_data_json)
     last_blink = timestamp
 
 def gazed(gaze_data):
@@ -179,81 +202,46 @@ def gazed(gaze_data):
 
 
 def main():
+    global pup_std, pup_mean
     ''' App entrypoint '''
     frontend = FrontendData()
-    # calibrated = False
-    # last_five = []
-    # while True:
-    # #     # poll for events
-    # #     # pygame.QUIT event means the user clicked X to close your window
-    # #     for event in pygame.event.get():
-    # #         if event.type == pygame.QUIT:
-    # #             running = False
-
-    # #     # fill the screen with a color to wipe away anything from last frame
-    # #     screen.fill('#000000')
-    # #     if not calibrated:
-    # #         circle = pygame.draw.circle(screen, (255, 0, 0),
-    # #             [WIDTH//2, HEIGHT//2], 10)
-        
-    # #     # show the text and dots in order
-    # #     text, textRect = calibration_texts()
-    # #     screen.blit(text, textRect)
-    # #     if not calibrated:
-    # #         mouse_pos = pygame.mouse.get_pos()
-    # #         mouse_pressed = pygame.mouse.get_pressed()[0]
-    # #         # print(mouse_pos, positions[i])
-    # #         if circle.collidepoint(mouse_pos) and mouse_pressed:
-    # #             print("clicked")
-    # #             base_pos = last_reading
-        
-    # #     if calibrated:
-            
-    # #         pygame.draw.rect(screen, (0,255,0), )
-
-    
-    # #     # flip() the display to put your work on screen
-    # #     pygame.display.flip()
-
-    # #     clock.tick(60)  # limits FPS to 60
-    #     last_five.append(last_reading)
-    #     if len(last_five) > 0:
-    #         last_five.pop(0)
-    #     print(last_reading)
-        
-    #     time.sleep(1)
-    # pygame.display.quit()
-    # # pygame.quit()
-    # print("calibration successful")
-    
     try:
         base = None
         c = 0
+        print("calibrating, focus on the middle of the screen...")
         while True:
-            if not base and last_reading is not None and c < 15:
+            if not base and last_reading is not None and c < 100:
                 base = last_reading
+                if lpup is not None and rpup is not None:
+                    pups.append(lpup + rpup)
+                c += 1
+                
+            if c == 120:
+                print("calibration done")
+                pup_std, pup_mean = np.std(pups), np.mean(pups)
+
+
             # print(last_reading[1], base[1])
             if base:
                 # print(last_reading, base)
-                if last_reading[1] > base[1] + 0.1:
+                if last_reading[1] > base[1] + 0.05:
                     pos[1] = 1
-                elif last_reading[1] < base[1] - 0.1:
+                elif last_reading[1] < base[1] - 0.05:
                     pos[1] = -1
                 else:
                     pos[1] = 0
-                if last_reading[0] > base[0] + 0.15:
+                if last_reading[0] > base[0] + 0.1:
                 #     # print(last_reading[0], base[0])
                     pos[0] = 1
-                elif last_reading[0] < base[0] - 0.15:
+                elif last_reading[0] < base[0] - 0.1:
                 #     # print(last_reading[0], base[0])
                     pos[0] = -1
                 else:
                     pos[0] = 0
             else:
                 print('no base yet')
-            print(pos)
+            # print(pos)
             time.sleep(0.15)
-            c += 1
     except (KeyboardInterrupt, SystemExit):
         frontend.shutdown()
 if __name__ == '__main__': 
