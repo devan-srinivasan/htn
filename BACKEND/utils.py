@@ -41,16 +41,38 @@ current_date = datetime.today().strftime("%B %d, %Y")
 class DeNoiseSummary(BaseModel):
     #Just one summary
     summary : str = Field(description = "Go through the user's notes and generate what the notes were trying to say. Filter all symbols.")
+
 #TEMPLATE TWO - Generate specialized answers based on pupil dilation / alterness / number of blinks
+class GenerateNeuralResponse(BaseModel):
+    #One output - suggestions
+    suggestions : str = Field(description = ''' YOU ARE AN ATTENTIVE BOT.
+                              THIS IS WHAT YOU WILL BE GIVEN:
+                              1. Particular words, concepts, and tasks the user has payed extreme attention to - seemingly of HIGH IMPORTANCE to them.
+                              2. General information about the topics the user is interested in.
+                              3. A vector depicting user brain state. The x-coordinate is optimism and satisfaction. The y-coordinate is attentiveness and motivation.
+                              
+                              THIS IS YOUR OBJECTIVE:
+                              Based on their specialized focusses of attention, broader interests, and EMOTIONAL STATE, generate A RESPONSE THAT WILL HELP THEM DO THEIR TASK 10X BETTER.
+                              This can be ANYTHING - instructions, step-by-step walkthroughs of problems, ideas, things you might think are useful.
+                              
+                              CHANGE HOW YOU RESPOND based on emotional state. More attentive? Detailed, step-by step. Less attentive? Abstract, experimental.
+                              
+                              DO YOUR BEST.''')
 
 #Validators
 denoiser_validator = PydanticOutputParser(pydantic_object = DeNoiseSummary)
+generator_validator = PydanticOutputParser(pydantic_object = GenerateNeuralResponse)
 
 #Prompt formats
 denoiser_prompt = PromptTemplate(
     template = "You are an assisstant fixing student notes. Fix the following and return a summary.\n'''{format_instructions}'''. The notes are as follows. '''{query}'''",
     input_variables = ["query"],
     partial_variables = {"format_instructions" : denoiser_validator.get_format_instructions()}
+)
+generator_prompt = PromptTemplate(
+    template = "You are a dilligent bot that actively seeks ways to help the user, based on brain and emotional state. Adhere to the following and return your suggestions: '''{response_instructions}'''\n\n'''GENERAL USER ATTENTION: {general_user_attention}'''\n\n'''SPECIFIC USER ATTENTION: {specific_user_attention}'''\n\n'''EMOTIONAL VECTOR: {russell_vector}'''",
+    input_variables = ["general_user_attention", "specific_user_attention", "russell_vector"],
+    partial_variables = {"response_instructions" : generator_validator.get_format_instructions()}
 )
 
 #Set API key as environment veriable
@@ -147,3 +169,25 @@ def generateNotes(note_text : str):
     print("TYPE:", type(parsed_model_output))
     #Return
     return parsed_model_output
+
+#EYE PUPIL DIAMETER TRACKING - given an (x, y) scaled vector in the Russel's Circumplex Model of Effects and previous context, generate an LLM Response
+#Setup function for the first conversation
+def setupLLM(instance, notes_dir : str):
+    ALL_NOTES = DirectoryLoader(notes_dir, glob = "**/*.txt", loader_cls = TextLoader).load()
+    #Generate embeddings
+    vector_embeddings = OpenAIEmbeddings()
+    #Set vectorstore
+    instance["vectorstore"] = Chroma.from_documents(ALL_NOTES, vector_embeddings)
+    #Set memory
+    instance["memory"] = ConversationBufferMemory(memory_key = "chat_history", return_messages = True)
+    #Set chain - inject initial prompt with general instructions
+    instance["chain"] = RetrievalQAWithSourcesChain.from_chain_type(llm = OpenAI(temperature = 0, retriever = instance["vectorstore"].as_retriever(),
+                                                                    chain_type = "stuff", chain_type_kwargs = {"prompt" : generator_prompt}))
+#Generate actual LLM recommendations and insights
+def generateLLMRecommendations(instance : dict, general_answer : str, specific_answer : str, brain_state_coords : tuple):
+    #Get response
+    response = instance["chain"]({"general_user_attention" : general_answer, "specific_user_attention" : specific_answer, "russell_vector" : brain_state_coords})
+    #Print response
+    print("RESPONSE", response)
+    return response
+
