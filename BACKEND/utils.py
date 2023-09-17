@@ -87,6 +87,7 @@ def createGoogleDoc(extracted_text : str, image_filepath : str):
 
 #Extract text from image
 def extractText(image_file_path : str):
+    pytesseract.tesseract_cmd = 'C:\Program Files\Tesseract-OCR\\tesseract.exe'
     img_text = pytesseract.image_to_string(Image.open(image_file_path))
     #Filter image text - replace all newlink/;pes and special characters
     img_text = img_text.replace("\n", "")
@@ -102,9 +103,11 @@ def generateNotes(note_text : str):
     #Configure input to model
     instructed_model_input = denoiser_prompt.format_prompt(query = note_text)
     #Get output
-    model_output = model(instructed_model_input.to_string())[0]
-    print("MODEL OUTPUT:", model_output)
+    # model_output = model("Chemistry is the subject of AUFIOSJFLSJOFIS atoms and their properties - namely, how they interact with one another in a controlled fashion known as reactions.")
+    model_output = model(instructed_model_input.to_string())
     #Parse
-    parsed_model_output = denoiser_validator.parse(model_output)
+    parsed_model_output = dict(denoiser_validator.parse(model_output))["summary"]
+    print("PARSED MODEL OUTPUT:", parsed_model_output)
+    print("TYPE:", type(parsed_model_output))
     #Return
     return parsed_model_output
