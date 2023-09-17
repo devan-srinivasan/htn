@@ -42,20 +42,40 @@ class DeNoiseSummary(BaseModel):
 class GenerateNeuralResponse(BaseModel):
     #One output - suggestions
     suggestions : str = Field(description = '''
-                              YOU ARE AN ATTENTIVE BOT.
+                              You are a bot. You will have access to what I am paying attention to. You also will have information to what I
+                              do or don't want to do and why, as well as brain state. This will help you understand what I know and what I'm struggling with.
+                              Use these to make suggestions in the field I'm working in that 10x my task performance.
 
-                              THIS IS WHAT YOU WILL BE GIVEN:
-                              1. Particular words, concepts, and tasks I have paid extreme attention to - seemingly of HIGH IMPORTANCE to me.
-                              2. General information about the topics I am interested in.
-                              3. A vector depicting user brain state. The x-coordinate is optimism and satisfaction. The y-coordinate is attentiveness and motivation.
+                              For example, if I was an author writing a book, you could provide ideas for new plot directions. You would be CREATIVE.
+                              If I was a student solving a math problem, you could provide how to arrive at the solution to that given prolbem and what formulas to use. You would be LOGICAL.
+
+                              Switch between these modes as I change and my problems change.''')
                               
-                              THIS IS YOUR OBJECTIVE:
-                              Based on my specialized focusses of attention, broader interests, and EMOTIONAL STATE, generate A RESPONSE THAT WILL HELP ME DO THEIR TASK 10X BETTER.
-                              This can be ANYTHING - instructions, step-by-step walkthroughs of problems, ideas, things you might think are useful.
+                            # Everything should be related to the originals ubject - science aly pani, ali 
+
+                            # #   You are a bot with access to what I'm looking at. I could be looking at text, images, or something else.
+                            # #   Use the information you can see to make suggestions.
+
+                            # #   You are a bot. You'll see what I'm actively looking at with my vision; generally and specifically (like a specific piece of text or problem)
+                            # #   Based on this new information you have acquired, as well as information (RUSSELL VECTOR) about the brain state, generate closely relatedif I am motivated or not,
+                            # #   brainstorm ideas, suggestions, mindsets, and more tailored advice to skyrocket SPECIFICALLY what I do. No random stuff.
+
+
                               
-                              CHANGE HOW YOU RESPOND based on emotional state. More attentive? Detailed, step-by step. Less attentive? Abstract, experimental.
+                            #   YOU ARE A BOT. YOU WILL ADOPT PERSONALITY CHARACTERISTICS BASED ON THE BELOW:
+
+                            #   THIS IS WHAT YOU WILL BE GIVEN:
+                            #   1. Particular words, concepts, and tasks I have paid extreme attention to - seemingly of HIGH IMPORTANCE to me.
+                            #   2. General information about the topics I am interested in.
+                            #   3. A vector depicting user brain state. The x-coordinate is optimism and satisfaction. The y-coordinate is attentiveness and drive.
                               
-                              DO YOUR BEST.''')
+                            #   THIS IS YOUR OBJECTIVE:
+                            #   Based on my specialized subject, field, and what my attitude seems to be based on provided pupil data, generate A RESPONSE THAT WILL HELP ME DO THEIR TASK 10X BETTER.
+                            #   This can be - instructions, step-by-step walkthroughs of problems, ideas, things you might think are useful.
+                              
+                            #   CHANGE HOW YOU RESPOND based on emotional state. More attentive? Detailed, step-by step. Less attentive? Abstract, experimental.
+                              
+                            #   DO YOUR BEST.)
 
 #Validators
 denoiser_validator = PydanticOutputParser(pydantic_object = DeNoiseSummary)
@@ -178,6 +198,7 @@ def setupLLM(instance, notes_dir : str):
 #Generate actual LLM recommendations and insights
 def generateLLMRecommendations(instance : dict, general_answer : str, specific_answer : str, brain_state_coords : tuple):
     #Get response
+    
     response = instance["chain"]({"general_user_attention" : general_answer, "specific_user_attention" : specific_answer, "russell_vector" : brain_state_coords, "question" : "GENERATE YOUR SUGGESTIONS AS PER THE INSTRUCTIONS AND PREVIOUS DATA."})
     #Print response
     print("RESPONSE", response)

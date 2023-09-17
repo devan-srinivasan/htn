@@ -16,9 +16,16 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 #For initial authentication
 from google_auth_oauthlib.flow import InstalledAppFlow
+from flask_socketio import SocketIO, emit
+from flask_cors import CORS
+from flask import jsonify, make_response
 
 #Init server
 NOTE_SERVER = Flask(__name__)
+# socket
+# CORS(NOTE_SERVER,resources={r"/*":{"origins":"*"}})
+# socketio = SocketIO(NOTE_SERVER,cors_allowed_origins="*")
+
 #Create Dictionary to hold Conversation Data
 CONVERSATION_USER_INSTANCE = {}
 #Create a dictionary for all details regarding notes - in particular, document ID and current slide number
@@ -43,6 +50,7 @@ vertical_interval = screen_size[1] // 3
 horizontal_interval = screen_size[0] // 3
 
 google_docs_client = None
+llm_response = None
 #Calculate exact pixel position of each combination of directions - place in 3x3 matrix
 DIRECTION_MATRIX = [[1, 1, 1], [1, 1, 1,], [1, 1, 1]]
 #Iterate and populate direction matrix
@@ -78,17 +86,33 @@ def auth_google():
     }
     return (json.dumps('success'), 200, headers)
 
+# @NOTE_SERVER.route("/llm-data", methods=['GET'])
+# def llm_data():
+#     global llm_response
+#     headers = {
+#         'Content-Type':'application/json',
+#         'Access-Control-Allow-Origin': '*',
+#         'Access-Control-Allow-Headers': 'Content-Type',
+#     }
+#     print(llm_response)
+#     if llm_response is not None:
+#         data = llm_response
+#         llm_response = None
+#         return make_response(jsonify({'data': data}), 200, headers)
+#     else:
+#         return make_response(jsonify({'data': ''}), 200, headers)
+
 #Get response
-@NOTE_SERVER.route("/start-adhawk", methods=["POST"])
-def start_adhawk():
-    print("starting adhawk")
-    subprocess.run(['python3', '../eyetracking/simple/simple_example.py'])
-    headers = {
-        'Content-Type':'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-    }
-    return (json.dumps('success'), 200, headers)
+# @NOTE_SERVER.route("/start-adhawk", methods=["POST"])
+# def start_adhawk():
+#     print("starting adhawk")
+#     subprocess.run(['python3', '../eyetracking/simple/simple_example.py'])
+#     headers = {
+#         'Content-Type':'application/json',
+#         'Access-Control-Allow-Origin': '*',
+#         'Access-Control-Allow-Headers': 'Content-Type',
+#     }
+#     return (json.dumps('success'), 200, headers)
 
 def google_objs():
     global google_docs_client
@@ -105,7 +129,6 @@ def google_objs():
     google_drive_client = build("drive", "v3", credentials = CREDENTIALS)
     g_docs_cli = build("docs", "v1", credentials = CREDENTIALS)
     google_docs_client = g_docs_cli
-    
 
 #Get response
 @NOTE_SERVER.route("/save-note", methods=["POST", "GET"])
@@ -177,7 +200,7 @@ def save_note():
 #Receive eye pupil measurements and fuel that into the LLM
 @NOTE_SERVER.route("/pupil-data", methods = ["POST"])
 def get_pupil_data():
-    global LLM_Setup
+    global LLM_Setup, llm_data
     #Receive both outliers and non-outliers
     # print(request.json)
     outliers = json.loads(request.json)["outliers"]
@@ -211,8 +234,11 @@ def get_pupil_data():
     print(AUGMENTED_NOTE_HISTORY)
     model_response = generateLLMRecommendations(instance = CONVERSATION_USER_INSTANCE, general_answer = AUGMENTED_NOTE_HISTORY["COMPLETE"][-1],
                                                 specific_answer = AUGMENTED_NOTE_HISTORY["INCOMPLETE"][-1], brain_state_coords = RUSSEL_VECTOR_SPACE_COORDINATES)
+    # print("posting")
     #Return the model's response
-    requests.post('http://localhost:3000/llm-data', json.dumps(model_response))
+    # requests.post('http://localhost:3000/llm-data', json.dumps(model_response))
+    llm_data = model_response
+    print(llm_data)
     return {"model_response" : model_response}
 
 #Served
@@ -221,7 +247,8 @@ if __name__ == "__main__":
     port_number = 3001
     from waitress import serve
     #Print
-    print("NOTE SERVER RUNNING ON PORT {}.".format(port_number))
+    # print("NOTE SERVER RUNNING ON PORT {}.".format(port_number))
     #Run server
-    serve(NOTE_SERVER, host = "localhost", port = port_number)
-    # NOTE_SERVER.run(port = port_number, debug = True)
+    # serve(NOTE_SERVER, host = "localhost", port = port_number)
+    NOTE_SERVER.run(port = port_number, debug = True)
+    # socketio.run(NOTE_SERVER, debug=True,port=3001)

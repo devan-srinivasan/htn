@@ -142,6 +142,8 @@ def calculate_pupil_ratios(n = 40):
     global pup_mean, pup_std
     outliers = []
     nonoutliers = []
+    if pup_mean is None or pup_std is None:
+        return [], []
     for i in range(min(len(pups), 40)):
         z = (float(pups[i]) - float(pup_mean)) / float(pup_std)
         if abs(z) >= 2:
@@ -152,7 +154,7 @@ def calculate_pupil_ratios(n = 40):
 
 def blinked(timestamp):
     global last_blink
-    DBL_BLINK_TIME = 1.5
+    DBL_BLINK_TIME = 2.5
     data_json = json.dumps(pos)
     outliers, nonoutliers = calculate_pupil_ratios(50)
     pupil_data_json = json.dumps({'outliers': outliers, 'nonoutliers': nonoutliers})
@@ -204,7 +206,7 @@ def gazed(gaze_data):
 
 def main():
     global pup_std, pup_mean
-    calibration_count = 20
+    calibration_count = 40
     ''' App entrypoint '''
     frontend = FrontendData()
     try:
@@ -219,7 +221,7 @@ def main():
                 if lpup is not None and rpup is not None:
                     pups.append(lpup + rpup)
                 c += 1
-                # print(c)
+                print((calibration_count - c) // 6.7)
                 
             if c == calibration_count and not cali:
                 print("calibration done")
