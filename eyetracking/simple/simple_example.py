@@ -5,7 +5,7 @@ import time
 import adhawkapi
 import adhawkapi.frontend
 
-import requests
+import requests, json
 # import pygame
 
 last_blink = None
@@ -16,7 +16,7 @@ import subprocess, re, sys
 from sys import platform
 
 pos = [0, 0]
-URL = "https://localhost:3001"
+URL = "http://localhost:3001"
 
 # BLACK = (0, 0, 0)
 # WHITE = (200, 200, 200)
@@ -132,10 +132,13 @@ class FrontendData:
 def blinked(timestamp):
     global last_blink
     DBL_BLINK_TIME = 1.5
+    data_json = json.dumps(pos)
     # print(timestamp - last_blink)
+
+    print("blinked")
     if last_blink is not None and timestamp - last_blink < DBL_BLINK_TIME:
-        x = requests.post(URL, json = {pos: pos})
-        print(x['success_message'])
+        print("sending")
+        x = requests.post(URL + '/save-note', json = data_json)
     last_blink = timestamp
 
 def gazed(gaze_data):
@@ -227,24 +230,29 @@ def main():
         base = None
         c = 0
         while True:
-            if not base and last_reading is not None and c < 5:
+            if not base and last_reading is not None and c < 15:
                 base = last_reading
-            if last_reading[1] > base[1] + 0.75:
-                pos[1] = 1
-            elif last_reading[1] < base[1] - 0.75:
-                pos[1] = -1
+            # print(last_reading[1], base[1])
+            if base:
+                # print(last_reading, base)
+                if last_reading[1] > base[1] + 0.1:
+                    pos[1] = 1
+                elif last_reading[1] < base[1] - 0.1:
+                    pos[1] = -1
+                else:
+                    pos[1] = 0
+                if last_reading[0] > base[0] + 0.15:
+                #     # print(last_reading[0], base[0])
+                    pos[0] = 1
+                elif last_reading[0] < base[0] - 0.15:
+                #     # print(last_reading[0], base[0])
+                    pos[0] = -1
+                else:
+                    pos[0] = 0
             else:
-                pos[1] = 0
-            if last_reading[0] > base[0] + 1:
-                print(last_reading[0], base[0])
-                pos[0] = 1
-            elif last_reading[0] < base[0] - 1:
-                print(last_reading[0], base[0])
-                pos[0] = -1
-            else:
-                pos[0] = 0
+                print('no base yet')
             print(pos)
-            time.sleep(1)
+            time.sleep(0.15)
             c += 1
     except (KeyboardInterrupt, SystemExit):
         frontend.shutdown()
