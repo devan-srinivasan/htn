@@ -81,6 +81,7 @@ class FrontendData:
 
     @staticmethod
     def _handle_et_data(et_data: adhawkapi.EyeTrackingStreamData):
+        global lpup, rpup
         ''' Handles the latest et data '''
         if et_data.gaze is not None:
             xvec, yvec, zvec, vergence = et_data.gaze
@@ -203,21 +204,27 @@ def gazed(gaze_data):
 
 def main():
     global pup_std, pup_mean
+    calibration_count = 20
     ''' App entrypoint '''
     frontend = FrontendData()
     try:
         base = None
         c = 0
+        cali = False
         print("calibrating, focus on the middle of the screen...")
         while True:
-            if not base and last_reading is not None and c < 100:
+            if c < calibration_count:
                 base = last_reading
+                # print(lpup, rpup)
                 if lpup is not None and rpup is not None:
                     pups.append(lpup + rpup)
                 c += 1
+                # print(c)
                 
-            if c == 120:
+            if c == calibration_count and not cali:
                 print("calibration done")
+                cali = True
+                # print(pups)
                 pup_std, pup_mean = np.std(pups), np.mean(pups)
 
 

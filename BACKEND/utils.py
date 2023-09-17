@@ -41,14 +41,16 @@ class DeNoiseSummary(BaseModel):
 #TEMPLATE TWO - Generate specialized answers based on pupil dilation / alterness / number of blinks
 class GenerateNeuralResponse(BaseModel):
     #One output - suggestions
-    suggestions : str = Field(description = ''' YOU ARE AN ATTENTIVE BOT.
+    suggestions : str = Field(description = '''
+                              YOU ARE AN ATTENTIVE BOT.
+
                               THIS IS WHAT YOU WILL BE GIVEN:
-                              1. Particular words, concepts, and tasks the user has payed extreme attention to - seemingly of HIGH IMPORTANCE to them.
-                              2. General information about the topics the user is interested in.
+                              1. Particular words, concepts, and tasks I have paid extreme attention to - seemingly of HIGH IMPORTANCE to me.
+                              2. General information about the topics I am interested in.
                               3. A vector depicting user brain state. The x-coordinate is optimism and satisfaction. The y-coordinate is attentiveness and motivation.
                               
                               THIS IS YOUR OBJECTIVE:
-                              Based on their specialized focusses of attention, broader interests, and EMOTIONAL STATE, generate A RESPONSE THAT WILL HELP THEM DO THEIR TASK 10X BETTER.
+                              Based on my specialized focusses of attention, broader interests, and EMOTIONAL STATE, generate A RESPONSE THAT WILL HELP ME DO THEIR TASK 10X BETTER.
                               This can be ANYTHING - instructions, step-by-step walkthroughs of problems, ideas, things you might think are useful.
                               
                               CHANGE HOW YOU RESPOND based on emotional state. More attentive? Detailed, step-by step. Less attentive? Abstract, experimental.
@@ -61,13 +63,13 @@ generator_validator = PydanticOutputParser(pydantic_object = GenerateNeuralRespo
 
 #Prompt formats
 denoiser_prompt = PromptTemplate(
-    template = "You are an assisstant fixing student notes. Fix the following and return a summary.\n'''{format_instructions}'''. The notes are as follows. '''{query}'''",
+    template = "\n'''{format_instructions}'''. The notes are as follows. '''{query}'''",
     input_variables = ["query"],
     partial_variables = {"format_instructions" : denoiser_validator.get_format_instructions()}
 )
 generator_prompt = PromptTemplate(
-    template = "You are a dilligent bot that actively seeks ways to help the user, based on brain and emotional state. Adhere to the following and return your suggestions: '''{response_instructions}'''\n\n'''GENERAL USER ATTENTION: {general_user_attention}'''\n\n'''SPECIFIC USER ATTENTION: {specific_user_attention}'''\n\n'''EMOTIONAL VECTOR: {russell_vector}'''",
-    input_variables = ["general_user_attention", "specific_user_attention", "russell_vector"],
+    template = "You are a dilligent bot that actively seeks ways to help me, based on my brain and emotional state. Adhere to the following and return your suggestions: '''{response_instructions}'''\n\n'''GENERAL USER ATTENTION: {general_user_attention}'''\n\n'''SPECIFIC USER ATTENTION: {specific_user_attention}'''\n\n'''EMOTIONAL VECTOR: {russell_vector}'''\n\n'''QUESTION:{question}\nSUMMARIES:{summaries}'''",
+    input_variables = ["general_user_attention", "specific_user_attention", "russell_vector", "question", "summaries"],
     partial_variables = {"response_instructions" : generator_validator.get_format_instructions()}
 )
 
@@ -162,6 +164,7 @@ def generateNotes(note_text : str):
 #EYE PUPIL DIAMETER TRACKING - given an (x, y) scaled vector in the Russel's Circumplex Model of Effects and previous context, generate an LLM Response
 #Setup function for the first conversation
 def setupLLM(instance, notes_dir : str):
+    print("NOTES DIRECTORY:", notes_dir)
     ALL_NOTES = DirectoryLoader(notes_dir, glob = "**/*.txt", loader_cls = TextLoader).load()
     #Generate embeddings
     vector_embeddings = OpenAIEmbeddings()
@@ -170,12 +173,12 @@ def setupLLM(instance, notes_dir : str):
     #Set memory
     instance["memory"] = ConversationBufferMemory(memory_key = "chat_history", return_messages = True)
     #Set chain - inject initial prompt with general instructions
-    instance["chain"] = RetrievalQAWithSourcesChain.from_chain_type(llm = OpenAI(temperature = 0, retriever = instance["vectorstore"].as_retriever(),
-                                                                    chain_type = "stuff", chain_type_kwargs = {"prompt" : generator_prompt}))
+    instance["chain"] = RetrievalQAWithSourcesChain.from_chain_type(llm = OpenAI(temperature = 0), retriever = instance["vectorstore"].as_retriever(),
+                                                                    chain_type = "stuff", chain_type_kwargs = {"prompt" : generator_prompt})
 #Generate actual LLM recommendations and insights
 def generateLLMRecommendations(instance : dict, general_answer : str, specific_answer : str, brain_state_coords : tuple):
     #Get response
-    response = instance["chain"]({"general_user_attention" : general_answer, "specific_user_attention" : specific_answer, "russell_vector" : brain_state_coords})
+    response = instance["chain"]({"general_user_attention" : general_answer, "specific_user_attention" : specific_answer, "russell_vector" : brain_state_coords, "question" : "GENERATE YOUR SUGGESTIONS AS PER THE INSTRUCTIONS AND PREVIOUS DATA."})
     #Print response
     print("RESPONSE", response)
     return response
