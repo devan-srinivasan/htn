@@ -51,11 +51,7 @@ def getScreenGazeDirection(pos_string):
     return vertical_directions[numbers[0]], horizontal_directions[numbers[1]]
 
 #Get response
-<<<<<<< HEAD
-@NOTE_SERVER.route("/save-note", methods=['POST', 'GET'])
-=======
 @NOTE_SERVER.route("/save-note", methods=["POST", "GET"])
->>>>>>> 5b6ea04ef862baade971e5e1ca2c8824f9221e9d
 def save_note():
     if request.method == "GET": data = request.get_json
     
