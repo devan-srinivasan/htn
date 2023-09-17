@@ -5,12 +5,17 @@ from flask import session
 import numpy as np
 import cv2
 import pyautogui
+import subprocess
 from PIL import Image
 from pytesseract import pytesseract
 from utils import createGoogleDoc
 from utils import extractText, generateNotes
 import time
-import math
+import json
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+#For initial authentication
+from google_auth_oauthlib.flow import InstalledAppFlow
 
 #Init server
 NOTE_SERVER = Flask(__name__)
@@ -25,6 +30,8 @@ screen_size = pyautogui.size()
 #Divide by three vertically and horizontally
 vertical_interval = screen_size[1] // 3
 horizontal_interval = screen_size[0] // 3
+
+google_docs_client = None
 #Calculate exact pixel position of each combination of directions - place in 3x3 matrix
 DIRECTION_MATRIX = [[1, 1, 1], [1, 1, 1,], [1, 1, 1]]
 #Iterate and populate direction matrix
@@ -51,12 +58,53 @@ def getScreenGazeDirection(pos_string):
     return vertical_directions[numbers[0]], horizontal_directions[numbers[1]]
 
 #Get response
+@NOTE_SERVER.route("/auth-google", methods=["POST", "GET"])
+def auth_google():
+    print("authenticating with google")
+    google_objs()
+    headers = {
+        'Content-Type':'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    }
+    return (json.dumps('success'), 200, headers)
+
+#Get response
+@NOTE_SERVER.route("/start-adhawk", methods=["POST"])
+def start_adhawk():
+    print("starting adhawk")
+    subprocess.run(['python3', '../eyetracking/simple/simple_example.py'])
+    headers = {
+        'Content-Type':'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    }
+    return (json.dumps('success'), 200, headers)
+
+def google_objs():
+    global google_docs_client
+    #Get scopes for the API
+    PROJECT_SCOPES = ["https://www.googleapis.com/auth/documents", "https://www.googleapis.com/auth/drive"]
+    #Path to credentials
+    credentials_filepath = "client_secrets.json"
+    #Authentication flow
+    authentication_flow = InstalledAppFlow.from_client_secrets_file(credentials_filepath, scopes = PROJECT_SCOPES)
+    #Begin flow for token transfer + authorization
+    CREDENTIALS = authentication_flow.run_local_server()
+
+    #SET UP CLIENTS FOR GOOGLE DOCS AND DRIVE
+    google_drive_client = build("drive", "v3", credentials = CREDENTIALS)
+    g_docs_cli = build("docs", "v1", credentials = CREDENTIALS)
+    google_docs_client = g_docs_cli
+    
+
+#Get response
 @NOTE_SERVER.route("/save-note", methods=["POST", "GET"])
 def save_note():
-    if request.method == "GET": data = request.get_json
+    if request.method == "POST": data = request.get_json()
     
     #Get screenshot of current text
-    time.sleep(5)
+    # time.sleep(5)
     img = pyautogui.screenshot()
     #Convert to numpy array and then to a PIL image that can be written to disk
     saved_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
@@ -103,7 +151,7 @@ def save_note():
     #Prepare augmented notes to be written on Google Docs
     augmented_notes = f"Our notes for this slide:\n\n{augmented_complete_notes_text}\n\nWhat we think you were most intrigued by (with some more thorough explanation):\n\n{augmented_cropped_notes_text}"
     #Save image and text to Google Docs - provide all augmented notes, filepath of image to be saved, and note details (document ID and slide number)
-    createGoogleDoc(extracted_text = augmented_notes, image_filepath = img_name, note_details = NOTE_DETAILS)
+    createGoogleDoc(extracted_text = augmented_notes, image_filepath = img_name, note_details = NOTE_DETAILS, google_docs_client = google_docs_client)
     message = "We've successfully enhanced and saved your notes to Google Docs."
     return {"success_message": message}
 

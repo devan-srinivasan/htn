@@ -1,0 +1,1 @@
+OPENAI_SECRET_KEY = "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"

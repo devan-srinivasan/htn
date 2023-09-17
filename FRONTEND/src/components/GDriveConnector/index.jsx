@@ -20,11 +20,15 @@ function DriveConnector() {
 
   const handleSubmit = event => {
     event.preventDefault();
-    // fetch(`http://localhost:3001/save-note"`)
-    // .then(response => response.json())
-    // .then(body => {
-    //   console.log(body);
-    //   })
+    fetch(`http://localhost:3001/auth-google`, {method: 'POST'})
+    .then(response => {
+      if (response.ok) {
+        fetch(`http://localhost:3001/start-adhawk`, {method: 'POST'})
+      }
+    })
+    .then(body => {
+      console.log(body);
+    }).then()
 
     navigate('/main');
   }

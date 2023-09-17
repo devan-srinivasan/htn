@@ -1,9 +1,5 @@
 #For Google Docs / Google Drive Integration
 import os
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-#For initial authentication
-from google_auth_oauthlib.flow import InstalledAppFlow
 #For image processing and text generation
 from PIL import Image
 from pytesseract import pytesseract
@@ -57,21 +53,9 @@ denoiser_prompt = PromptTemplate(
 os.environ["OPENAI_API_KEY"] = Keys.OPENAI_SECRET_KEY
 #Set default parameters for PyTesseract
 pytesseract.tesseract_cmd = 'C:\Program Files\Tesseract-OCR\\tesseract.exe'
-#Get scopes for the API
-PROJECT_SCOPES = ["https://www.googleapis.com/auth/documents", "https://www.googleapis.com/auth/drive"]
-#Path to credentials
-credentials_filepath = "client_secrets.json"
-#Authentication flow
-authentication_flow = InstalledAppFlow.from_client_secrets_file(credentials_filepath, scopes = PROJECT_SCOPES)
-#Begin flow for token transfer + authorization
-CREDENTIALS = authentication_flow.run_local_server()
-
-#SET UP CLIENTS FOR GOOGLE DOCS AND DRIVE
-google_drive_client = build("drive", "v3", credentials = CREDENTIALS)
-google_docs_client = build("docs", "v1", credentials = CREDENTIALS)
 
 #Create google doc with notes
-def createGoogleDoc(extracted_text : str, image_filepath : str, note_details : dict):
+def createGoogleDoc(extracted_text : str, image_filepath : str, note_details : dict, google_docs_client):
     #If the Document ID is None, create a new document and add text to that
     #Otherwise, leverage the pre-existing Document ID
     if note_details["DOCUMENT_ID"] == None:

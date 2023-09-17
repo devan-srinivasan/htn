@@ -3,3 +3,5 @@ BACKEND/Keys.py
 venv/
 eyetracking/GazeTracking/
 .gitignore
+FRONTEND/node_modules
+FRONTEND/package-lock.json
