@@ -1,0 +1,84 @@
+.Title {
+    /* position: absolute; */
+    margin-left: 10px;
+    color: black;
+    /* font-family: Verdana; */
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.Title:hover, .Title:active {
+    color: black !important; 
+}
+
+.subTitle {
+    /* position: absolute; */
+    margin-left: 40px;
+    color: black;
+    /* font-family: Verdana; */
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.navbarContainer {
+    /* height: 40px; */
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background-color: white;
+    border-bottom:1px solid #d3d3d3;
+    /* background-color: #4682B4; */
+}
+
+.App-logo {
+    height: 25px;
+}
+
+/* .drive-logo {
+    height: 25px;
+    margin: 0 10px;
+}
+
+
+.form-group {
+    width: 80%;
+    text-align: left;
+    margin: auto;
+    margin-bottom: 10px;
+
+} */
+
+
+/* .formWrapper {
+    margin: 20px auto;
+    border: 2px solid #5F9EA0;
+    border-radius: 10px;
+    width: 95%;
+    font-family: Verdana;
+} */
+
+
+/* .btn-primary {
+    background-color: #4682B4;
+    border: none;
+    font-family: Verdana;
+    margin: 180px 0;
+}
+
+
+.btn-primary:hover, .btn-primary:active {
+    background-color: #1A74B9 !important; 
+   
+} */
+
+/* body {
+    background-color: #E6E6FA;
+} */
+
+
+/* .formTitle {
+    margin-top: 10px;
+    display: inline-block;
+} */
