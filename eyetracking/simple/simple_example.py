@@ -135,7 +135,7 @@ def blinked(timestamp):
     data_json = json.dumps(pos)
     # print(timestamp - last_blink)
 
-    print("blinked")
+    print(f"blinked @ {pos}")
     if last_blink is not None and timestamp - last_blink < DBL_BLINK_TIME:
         print("sending")
         x = requests.post(URL + '/save-note', json = data_json)
@@ -235,23 +235,23 @@ def main():
             # print(last_reading[1], base[1])
             if base:
                 # print(last_reading, base)
-                if last_reading[1] > base[1] + 0.1:
+                if last_reading[1] > base[1] + 0.05:
                     pos[1] = 1
-                elif last_reading[1] < base[1] - 0.1:
+                elif last_reading[1] < base[1] - 0.05:
                     pos[1] = -1
                 else:
                     pos[1] = 0
-                if last_reading[0] > base[0] + 0.15:
+                if last_reading[0] > base[0] + 0.1:
                 #     # print(last_reading[0], base[0])
                     pos[0] = 1
-                elif last_reading[0] < base[0] - 0.15:
+                elif last_reading[0] < base[0] - 0.1:
                 #     # print(last_reading[0], base[0])
                     pos[0] = -1
                 else:
                     pos[0] = 0
             else:
                 print('no base yet')
-            print(pos)
+            # print(pos)
             time.sleep(0.15)
             c += 1
     except (KeyboardInterrupt, SystemExit):

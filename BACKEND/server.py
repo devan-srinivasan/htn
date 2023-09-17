@@ -38,8 +38,18 @@ for i, vertical_direction in enumerate(vertical_directions):
 def response():
     return "Root dir accessed"
 
+def getScreenGazeDirection(pos_string):
+    import re
+    if pos_string is None or len(pos_string) == 0:
+        return "center", "center"
+    # Use regular expressions to find and extract the numbers
+    numbers = [int(match) for match in re.findall(r'\d+', pos_string)]
+    vertical_directions = ["center", "down", "up"]
+    horizontal_directions = ["center", "right", "left"]
+    return vertical_directions[numbers[0]], horizontal_directions[numbers[1]]
+
 #Get response
-@NOTE_SERVER.route("/save-note", methods=['POST'])
+@NOTE_SERVER.route("/save-note", methods=['POST', 'GET'])
 def save_note():
     print("TRIGGERED")
     data = request.get_json()
@@ -58,9 +68,10 @@ def save_note():
 
     #Get gaze direction from AdHawk dataset and crop the image accordingly
     #9-quadrant-based system
-    #horizontal_direction, vertical_direction = getScreenGazeDirection()
-    vertical_direction = "up"
-    horizontal_direction = "right"
+    vertical_direction, horizontal_direction = getScreenGazeDirection(data)
+    print(vertical_direction, horizontal_direction)
+    # vertical_direction = "up"
+    # horizontal_direction = "right"
     #Get center of region the user is looking at
     center_point = DIRECTION_MATRIX[vertical_directions.index(vertical_direction)][horizontal_directions.index(horizontal_direction)]
     #Crop the screen shot to ~60% of the screen size around the center point

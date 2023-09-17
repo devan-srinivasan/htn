@@ -87,7 +87,12 @@ def createGoogleDoc(extracted_text : str, image_filepath : str):
 
 #Extract text from image
 def extractText(image_file_path : str):
-    pytesseract.tesseract_cmd = 'C:\Program Files\Tesseract-OCR\\tesseract.exe'
+    from sys import platform
+    if platform == "darwin":
+        pytesseract.tesseract_cmd = '/opt/homebrew/Cellar/tesseract/5.3.2_1/bin/tesseract'
+    elif platform == "win32":
+        pytesseract.tesseract_cmd = 'C:\Program Files\Tesseract-OCR\\tesseract.exe'
+    
     img_text = pytesseract.image_to_string(Image.open(image_file_path))
     #Filter image text - replace all newlink/;pes and special characters
     img_text = img_text.replace("\n", "")
