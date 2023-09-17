@@ -6,10 +6,14 @@ import adhawkapi
 import adhawkapi.frontend
 
 import requests, json
+import numpy as np
 # import pygame
 
 last_blink = None
 last_reading, last_reading_count = [], 0
+lpup, rpup = None, None
+pups = []
+pup_std, pup_mean = None, None
 
 # calibration
 import subprocess, re, sys
@@ -91,7 +95,10 @@ class FrontendData:
         if et_data.pupil_diameter is not None:
             if et_data.eye_mask == adhawkapi.EyeMask.BINOCULAR:
                 rdiameter, ldiameter = et_data.pupil_diameter
+                lpup = ldiameter
+                rpup = rdiameter
                 # print(f'Pupil diameter: Left={ldiameter:.2f} Right={rdiameter:.2f}')
+
 
         if et_data.imu_quaternion is not None:
             if et_data.eye_mask == adhawkapi.EyeMask.BINOCULAR:
@@ -129,16 +136,30 @@ class FrontendData:
     def _handle_tracker_disconnect(self):
         print("Tracker disconnected")
 
+def calculate_pupil_ratios(n = 40):
+    outliers = []
+    nonoutliers = []
+    for i in range(min(len(pups), 40)):
+        z = (float(pups[i]) - float(pup_mean)) / float(pup_std)
+        if abs(z) >= 2:
+            outliers.append(pups[i])
+        else:
+            nonoutliers.append(pups[i])
+    return outliers, nonoutliers
+
 def blinked(timestamp):
     global last_blink
     DBL_BLINK_TIME = 1.5
     data_json = json.dumps(pos)
+    outliers, nonoutliers = calculate_pupil_ratios(50)
+    pupil_data_json = json.dumps({'outliers': outliers, 'nonoutliers': nonoutliers})
     # print(timestamp - last_blink)
 
     print(f"blinked @ {pos}")
     if last_blink is not None and timestamp - last_blink < DBL_BLINK_TIME:
         print("sending")
         x = requests.post(URL + '/save-note', json = data_json)
+        y = requests.post(URL + '/pupil-data', json = pupil_data_json)
     last_blink = timestamp
 
 def gazed(gaze_data):
@@ -230,10 +251,16 @@ def main():
         base = None
         c = 0
         while True:
-            if not base and last_reading is not None and c < 15:
+            if not base and last_reading is not None and c < 120:
                 base = last_reading
+                pups.append(lpup + rpup)
+                c += 1
+            if c == 120:
+                pup_std, pup_mean = np.std(pups), np.mean(pups)
+
+
             # print(last_reading[1], base[1])
-            if base:
+            if base and c >= 120:
                 # print(last_reading, base)
                 if last_reading[1] > base[1] + 0.05:
                     pos[1] = 1
@@ -253,7 +280,6 @@ def main():
                 print('no base yet')
             # print(pos)
             time.sleep(0.15)
-            c += 1
     except (KeyboardInterrupt, SystemExit):
         frontend.shutdown()
 if __name__ == '__main__': 
