@@ -23,6 +23,8 @@ NOTE_SERVER = Flask(__name__)
 CONVERSATION_USER_INSTANCE = {}
 #Create a dictionary for all details regarding notes - in particular, document ID and current slide number
 NOTE_DETAILS = {"DOCUMENT_ID" : None, "CURRENT_SLIDE_NUMBER" : 1}
+#Variable to verify whether the LLM has been setup or not
+LLM_Setup = False
 #Note screenshot names - complete and partial
 COMPLETE_NOTE_SCREENSHOT_NAMES = []
 PARTIAL_NOTE_SCREENSHOT_NAMES = []
@@ -161,6 +163,7 @@ def save_note():
     #Append both augmented text strings to arrays
     AUGMENTED_NOTE_HISTORY["COMPLETE"].append(augmented_complete_notes_text)
     AUGMENTED_NOTE_HISTORY["INCOMPLETE"].append(augmented_cropped_notes_text)
+    print(AUGMENTED_NOTE_HISTORY)
     #Log to terminal
     print("AUGMENTED COMPLETED NOTES:", augmented_complete_notes_text)
     print("AUGMENTED CROPPED NOTES:",  augmented_cropped_notes_text)
@@ -174,19 +177,23 @@ def save_note():
 #Receive eye pupil measurements and fuel that into the LLM
 @NOTE_SERVER.route("/pupil-data", methods = ["POST"])
 def get_pupil_data():
+    global LLM_Setup
     #Receive both outliers and non-outliers
-    outliers = request.json["outliers"]
-    nonoutliers = request.json["nonoutliers"]
+    # print(request.json)
+    outliers = json.loads(request.json)["outliers"]
+    nonoutliers = json.loads(request.json)["nonoutliers"]
     #Compare ratio of outliers to non-outliers - rate of change in pupil dilation
     #If this ratio is high (perhaps above 0.75), epinephrine levels are relatively high, while below indicates decreased activation.
     #Pinpoint this exactly
     activation_threshold = 0.75
     #This indicates level of excitement / arousal -> less change = more excitement
-    ratio_o_n = len(nonoutliers)/len(outliers)
+    if len(outliers) == 0: ratio_o_n = 1
+    else: ratio_o_n = len(nonoutliers)/len(outliers)
     #Get the average of all outliers - do they tend to be above or below the nonoutliers?
     #In other words, is pupil dilation greater or less than the average?
     #This indicates valence - positive or negative emotion
-    average_outliers = sum(outliers)/len(outliers)
+    if len(outliers) == 0: average_outliers = 0
+    else: average_outliers = sum(outliers)/len(outliers)
     #Check for signs and magntitude - if ratio is above 0.75, epinephrine levels are relatively high and vice versa
     #If the average outliers are positive or negative, this implies impacts on serotonin levels
     #Translate ratio_o_n down by the activation threshold for translation into vector space and subsequent embedding
@@ -197,10 +204,13 @@ def get_pupil_data():
     RUSSEL_VECTOR_SPACE_COORDINATES = (average_outliers, ratio_o_n)
     #If this is the first time an LLM response is being generated, setup LLM
     #Determine this via the slide number
-    if (NOTE_DETAILS["CURRENT_SLIDE_NUMBER"] == 1): setupLLM(instance = CONVERSATION_USER_INSTANCE, notes_dir = DIRECTORY_OF_NOTES)
+    if not LLM_Setup: 
+        setupLLM(instance = CONVERSATION_USER_INSTANCE, notes_dir = DIRECTORY_OF_NOTES)
+        LLM_Setup = True
     #Query the model for suggestions, providing the most recent general and specific attented text as well as critical brain state information
+    print(AUGMENTED_NOTE_HISTORY)
     model_response = generateLLMRecommendations(instance = CONVERSATION_USER_INSTANCE, general_answer = AUGMENTED_NOTE_HISTORY["COMPLETE"][-1],
-                                                specific_answer = AUGMENTED_NOTE_HISTORY["INCOMPLETE"][-1], brain_state_coords = RUSSEL_VECTOR_SPACE_COORDINATES, notes_dir = DIRECTORY_OF_NOTES)
+                                                specific_answer = AUGMENTED_NOTE_HISTORY["INCOMPLETE"][-1], brain_state_coords = RUSSEL_VECTOR_SPACE_COORDINATES)
     #Return the model's response
     requests.post('http://localhost:3000/llm-data', json.dumps(model_response))
     return {"model_response" : model_response}
