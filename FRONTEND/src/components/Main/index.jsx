@@ -16,16 +16,33 @@ import Header from '../Header';
 import React, { useState, useEffect } from 'react';
 import notif from './notif.png'
 import style from './style.css'
+//Import socket
+import io from "socket.io-client"
+
+
+
 function Messages() {
     const [messages, setMessages] = useState(["The following notes were captured: the mitochondria is the powerhouse of the cell", "The following notes were captured: the mitochondria is the powerhouse of the cell", "The following notes were captured: the mitochondria is the powerhouse of the cell", "The following notes were captured: the mitochondria is the powerhouse of the cell"]);
-    
+    //Socket port
+    const socket_backend = io("http://localhost:3001/")
     const navigate = useNavigate();
-    
+  
     const handleClose = event => {
       event.preventDefault();
       navigate('/');
-  
     }
+
+    //Track data received from the server
+    useEffect(() => {
+      socket_backend.on("llm-data", (data) => {
+          //Get new message
+          const new_message = JSON.loads(data)["model_response"]
+          const updated_messages = [...messages, new_message]
+          setMessages(updated_messages)
+          setMessdata["model_response"]
+      })
+    })
+
     return (
     <>
       <Header/>

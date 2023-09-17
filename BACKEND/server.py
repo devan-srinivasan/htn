@@ -11,7 +11,7 @@ from pytesseract import pytesseract
 from utils import createGoogleDoc
 from utils import extractText, generateNotes, setupLLM, generateLLMRecommendations
 import time
-import json
+import json, requests
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 #For initial authentication
@@ -202,9 +202,10 @@ def get_pupil_data():
     model_response = generateLLMRecommendations(instance = CONVERSATION_USER_INSTANCE, general_answer = AUGMENTED_NOTE_HISTORY["COMPLETE"][-1],
                                                 specific_answer = AUGMENTED_NOTE_HISTORY["INCOMPLETE"][-1], brain_state_coords = RUSSEL_VECTOR_SPACE_COORDINATES, notes_dir = DIRECTORY_OF_NOTES)
     #Return the model's response
+    requests.post('http://localhost:3000/llm-data', json.dumps(model_response))
     return {"model_response" : model_response}
 
-#Serve
+#Served
 if __name__ == "__main__":
     #Port number
     port_number = 3001
