@@ -32,6 +32,8 @@ for i, vertical_direction in enumerate(vertical_directions):
     for j, horizontal_direction in enumerate(horizontal_directions):
         #To get the correct center value for each quadrant, multiply i + 1 by the vertical interval and j + 1 by the horizontal interval
         DIRECTION_MATRIX[i][j] = ((i + 1) * vertical_interval, (j + 1) * horizontal_interval)
+#Create a dictionary for all details regarding notes - in particular, document ID and current slide number
+NOTE_DETAILS = {"DOCUMENT_ID" : None, "CURRENT_SLIDE_NUMBER" : 1}
 
 #Routes
 @NOTE_SERVER.route("/")
@@ -49,13 +51,16 @@ def getScreenGazeDirection(pos_string):
     return vertical_directions[numbers[0]], horizontal_directions[numbers[1]]
 
 #Get response
+<<<<<<< HEAD
 @NOTE_SERVER.route("/save-note", methods=['POST', 'GET'])
+=======
+@NOTE_SERVER.route("/save-note", methods=["POST", "GET"])
+>>>>>>> 5b6ea04ef862baade971e5e1ca2c8824f9221e9d
 def save_note():
-    print("TRIGGERED")
-    data = request.get_json()
-    print(data)
+    if request.method == "GET": data = request.get_json
+    
     #Get screenshot of current text
-    # time.sleep(5)
+    time.sleep(5)
     img = pyautogui.screenshot()
     #Convert to numpy array and then to a PIL image that can be written to disk
     saved_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
@@ -100,9 +105,9 @@ def save_note():
     print("AUGMENTED COMPLETED NOTES:", augmented_complete_notes_text)
     print("AUGMENTED CROPPED NOTES:",  augmented_cropped_notes_text)
     #Prepare augmented notes to be written on Google Docs
-    augmented_notes = f"Our notes for this slide:\n\n{augmented_complete_notes_text}\n\nWhat we think you were most interested in:\n\n{augmented_cropped_notes_text}"
-    #Save image and text to Google Docs
-    createGoogleDoc(extracted_text = augmented_notes, image_filepath = img_name)
+    augmented_notes = f"Our notes for this slide:\n\n{augmented_complete_notes_text}\n\nWhat we think you were most intrigued by (with some more thorough explanation):\n\n{augmented_cropped_notes_text}"
+    #Save image and text to Google Docs - provide all augmented notes, filepath of image to be saved, and note details (document ID and slide number)
+    createGoogleDoc(extracted_text = augmented_notes, image_filepath = img_name, note_details = NOTE_DETAILS)
     message = "We've successfully enhanced and saved your notes to Google Docs."
     return {"success_message": message}
 

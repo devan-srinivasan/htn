@@ -31,6 +31,10 @@ from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field, validator
 from typing import List
 
+#For the current date (supplying the notes header)
+from datetime import datetime
+current_date = datetime.today().strftime("%B %d, %Y")
+
 #Define all types of prompt templates
 
 #TEMPLATE ONE - Generate Summarized / Refined version of notes based on all text.
@@ -67,23 +71,55 @@ google_drive_client = build("drive", "v3", credentials = CREDENTIALS)
 google_docs_client = build("docs", "v1", credentials = CREDENTIALS)
 
 #Create google doc with notes
-def createGoogleDoc(extracted_text : str, image_filepath : str):
-    #Create new Google doc
-    new_document = google_docs_client.documents().create().execute()
-    new_document_id = new_document["documentId"]
+def createGoogleDoc(extracted_text : str, image_filepath : str, note_details : dict):
+    #If the Document ID is None, create a new document and add text to that
+    #Otherwise, leverage the pre-existing Document ID
+    if note_details["DOCUMENT_ID"] == None:
+        print(f"CURRENT STATUS OF DOCUMENT ID: {note_details['DOCUMENT_ID']} - CREATING NEW DOCUMENT.")
+        new_document = google_docs_client.documents().create().execute()
+        note_details["DOCUMENT_ID"] = new_document["documentId"]
+    print("\n\nDOCUMENT ID:", note_details["DOCUMENT_ID"])
+    #Add the slide number at the beginning of each statement
+    #Introduce two newline characters if the slide number is above 1; otherwise introduce page header with current date
+    if note_details["CURRENT_SLIDE_NUMBER"] == 1: sentence_start = f"NOTES - {current_date}:\n\n".upper()
+    else: sentence_start = "\n\n"
+    slide_formatted_text = sentence_start + f"SLIDE {note_details['CURRENT_SLIDE_NUMBER']} NOTES:\n\n" + extracted_text
+    #Get current text of the document from the id - if this is a new document, this result will be blank
+    existing_document_object = google_docs_client.documents().get(documentId = note_details["DOCUMENT_ID"]).execute()
+    #Get text and index (length of the retrieved body)
+    existing_document_text = existing_document_object.get("body").get("content")
+    index_to_add = 1
+    #Create object for new notes
+    new_notes = {
+        "paragraph" : {
+            "elements" : [
+                {
+                    "textRun" : {
+                        "content" : slide_formatted_text,
+                    }
+                }
+            ]
+        }
+    }
+    #Insert the new phrase at the slide_number - 1 position
+    # existing_document_text.insert(index_to_add, new_notes)
+    #Modify the end document
     #Format request
     request = [
         {
             "insertText" : {
-                "location" : {
-                    "index" : 1,
-                },
-                "text" : extracted_text,
+                # "location" : {
+                #     "index" : index_to_add,
+                # },
+                "text" : slide_formatted_text,
+                "endOfSegmentLocation" : {}
             },
         },
     ]
     #Send and complete request
-    google_docs_client.documents().batchUpdate(documentId = new_document_id, body = {"requests" : request}).execute()
+    google_docs_client.documents().batchUpdate(documentId = note_details["DOCUMENT_ID"], body = {"requests" : request}).execute()
+    #Increment slide number
+    note_details["CURRENT_SLIDE_NUMBER"] += 1
 
 #Extract text from image
 def extractText(image_file_path : str):
